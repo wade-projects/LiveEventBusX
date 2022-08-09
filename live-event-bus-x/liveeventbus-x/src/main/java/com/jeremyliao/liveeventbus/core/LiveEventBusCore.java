@@ -16,9 +16,6 @@ import androidx.lifecycle.LifecycleOwner;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.Observer;
 
-import com.jeremyliao.liveeventbus.logger.DefaultLogger;
-import com.jeremyliao.liveeventbus.logger.Logger;
-import com.jeremyliao.liveeventbus.logger.LoggerManager;
 import com.jeremyliao.liveeventbus.utils.AppUtils;
 import com.jeremyliao.liveeventbus.utils.ThreadUtils;
 
@@ -56,7 +53,6 @@ public final class LiveEventBusCore {
     private final Config config = new Config();
     private boolean lifecycleObserverAlwaysActive;
     private boolean autoClear;
-    private LoggerManager logger;
     private final Map<String, ObservableConfig> observableConfigs;
 
     /**
@@ -69,7 +65,6 @@ public final class LiveEventBusCore {
         observableConfigs = new HashMap<>();
         lifecycleObserverAlwaysActive = true;
         autoClear = false;
-        logger = new LoggerManager(new DefaultLogger());
     }
 
     public synchronized <T> Observable<T> with(String key, Class<T> type) {
@@ -95,14 +90,6 @@ public final class LiveEventBusCore {
             observableConfigs.put(key, new ObservableConfig());
         }
         return observableConfigs.get(key);
-    }
-
-    void setLogger(@NonNull Logger logger) {
-        this.logger.setLogger(logger);
-    }
-
-    void enableLogger(boolean enable) {
-        this.logger.setEnable(enable);
     }
 
     void setLifecycleObserverAlwaysActive(boolean lifecycleObserverAlwaysActive) {
@@ -333,19 +320,12 @@ public final class LiveEventBusCore {
 
         @MainThread
         private void postInternal(T value) {
-            logger.log(Level.INFO, "post: " + value + " with key: " + key);
             liveData.setValue(value);
         }
 
         @MainThread
         private void broadcastInternal(T value, boolean foreground, boolean onlyInApp) {
-            logger.log(Level.INFO, "broadcast: " + value + " foreground: " + foreground +
-                    " with key: " + key);
-            Application application = AppUtils.getApp();
-            if (application == null) {
-                logger.log(Level.WARNING, "application is null, you can try setContext() when config");
-                return;
-            }
+
         }
 
         @MainThread
@@ -353,16 +333,12 @@ public final class LiveEventBusCore {
             ObserverWrapper<T> observerWrapper = new ObserverWrapper<>(observer);
             observerWrapper.preventNextEvent = liveData.getVersion() > ExternalLiveData.START_VERSION;
             liveData.observe(owner, observerWrapper);
-            logger.log(Level.INFO, "observe observer: " + observerWrapper + "(" + observer + ")"
-                    + " on owner: " + owner + " with key: " + key);
         }
 
         @MainThread
         private void observeStickyInternal(@NonNull LifecycleOwner owner, @NonNull Observer<T> observer) {
             ObserverWrapper<T> observerWrapper = new ObserverWrapper<>(observer);
             liveData.observe(owner, observerWrapper);
-            logger.log(Level.INFO, "observe sticky observer: " + observerWrapper + "(" + observer + ")"
-                    + " on owner: " + owner + " with key: " + key);
         }
 
         @MainThread
@@ -371,8 +347,6 @@ public final class LiveEventBusCore {
             observerWrapper.preventNextEvent = liveData.getVersion() > ExternalLiveData.START_VERSION;
             observerMap.put(observer, observerWrapper);
             liveData.observeForever(observerWrapper);
-            logger.log(Level.INFO, "observe forever observer: " + observerWrapper + "(" + observer + ")"
-                    + " with key: " + key);
         }
 
         @MainThread
@@ -380,8 +354,6 @@ public final class LiveEventBusCore {
             ObserverWrapper<T> observerWrapper = new ObserverWrapper<>(observer);
             observerMap.put(observer, observerWrapper);
             liveData.observeForever(observerWrapper);
-            logger.log(Level.INFO, "observe sticky forever observer: " + observerWrapper + "(" + observer + ")"
-                    + " with key: " + key);
         }
 
         @MainThread
@@ -414,7 +386,6 @@ public final class LiveEventBusCore {
                 if (autoClear() && !liveData.hasObservers()) {
                     LiveEventBusCore.get().bus.remove(key);
                 }
-                logger.log(Level.INFO, "observer removed: " + observer);
             }
 
             private boolean lifecycleObserverAlwaysActive() {
@@ -487,13 +458,12 @@ public final class LiveEventBusCore {
                 preventNextEvent = false;
                 return;
             }
-            logger.log(Level.INFO, "message received: " + t);
             try {
                 observer.onChanged(t);
             } catch (ClassCastException e) {
-                logger.log(Level.WARNING, "class cast error on message received: " + t, e);
+                e.printStackTrace();
             } catch (Exception e) {
-                logger.log(Level.WARNING, "error on message received: " + t, e);
+                e.printStackTrace();
             }
         }
     }
@@ -513,8 +483,6 @@ public final class LiveEventBusCore {
             StringBuilder sb = new StringBuilder();
             sb.append("lifecycleObserverAlwaysActive: ").append(lifecycleObserverAlwaysActive).append("\n")
                     .append("autoClear: ").append(autoClear).append("\n")
-                    .append("logger enable: ").append(logger.isEnable()).append("\n")
-                    .append("logger: ").append(logger.getLogger()).append("\n")
                     .append("Application: ").append(AppUtils.getApp()).append("\n");
             return sb.toString();
         }

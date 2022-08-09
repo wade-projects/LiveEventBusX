@@ -2,9 +2,6 @@ package com.jeremyliao.liveeventbus.core;
 
 import android.content.Context;
 
-import androidx.annotation.NonNull;
-
-import com.jeremyliao.liveeventbus.logger.Logger;
 import com.jeremyliao.liveeventbus.utils.AppUtils;
 
 /**
@@ -48,25 +45,4 @@ public class Config {
         return this;
     }
 
-    /**
-     * setLogger, if not set, use DefaultLogger
-     *
-     * @param logger Logger
-     * @return Config
-     */
-    public Config setLogger(@NonNull Logger logger) {
-        LiveEventBusCore.get().setLogger(logger);
-        return this;
-    }
-
-    /**
-     * set logger enable or disable, default enable
-     *
-     * @param enable boolean
-     * @return Config
-     */
-    public Config enableLogger(boolean enable) {
-        LiveEventBusCore.get().enableLogger(enable);
-        return this;
-    }
 }
